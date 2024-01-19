@@ -89,7 +89,7 @@ namespace NovelAIBot.Services
 
 		private async Task _client_Ready()
 		{
-			_logger.Information("Client ready.");
+			_logger.Information($"Client ready. Logged in as {_client.CurrentUser.Username}");
 			using (var scope = _scopeFactory.CreateScope())
 			{
 				var cmdService = scope.ServiceProvider.GetRequiredService<SlashCommandService>();

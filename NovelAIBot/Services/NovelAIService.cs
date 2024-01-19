@@ -20,6 +20,9 @@ namespace NovelAIBot.Services
 		private readonly Queue<SocketSlashCommand> queue = new Queue<SocketSlashCommand>();
 		private readonly ILogger _logger;
 
+
+		//private Dictionary<SocketInter>
+
 		private bool isBusy = false;
 
 		private event EventHandler<SocketSlashCommand> JobFinished;
@@ -37,11 +40,9 @@ namespace NovelAIBot.Services
 			string token = _configuration["NovelAIToken"];
 			_httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-
 			AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
 			this.JobFinished += NovelAIService_JobFinished;
 		}
-
 
 
 		public async Task AddPromptToQueueAsync(SocketSlashCommand cmd)
@@ -109,18 +110,19 @@ namespace NovelAIBot.Services
 			{
 				negPrompt = (string)cmd.Data.Options.First(x => x.Name == "negative-prompt");
 			}
-			float cfgRescale = 0.7f;
-			if (cmd.Data.Options.Any(x => x.Name == "cfg-rescale"))
+			ImageSizes size = ImageSizes.Portrait;
+			if (cmd.Data.Options.Any(x => x.Name == "image-size"))
 			{
-				cfgRescale = (float)cmd.Data.Options.First(x => x.Name == "cfg-rescale");
+				int val = Convert.ToInt32(cmd.Data.Options.First(x => x.Name == "image-size").Value);
+				size = (ImageSizes)val;
 			}
 			await cmd.ModifyOriginalResponseAsync(x =>
 			{
-				x.Content = $"Prompt job started. 0 prompts ahead.\n**Prompt:** {escapeUnderscoreFormatting(prompt)}\n\n**Negative Prompt:** {escapeUnderscoreFormatting(negPrompt)}\n\n**Cfg-Rescale**: {cfgRescale}";
+				x.Content = $"Prompt job started. 0 prompts ahead.\n**Prompt:** {escapeUnderscoreFormatting(prompt)}\n\n**Negative Prompt:** {escapeUnderscoreFormatting(negPrompt)}\n\n**Image Size**: {Enum.GetName(typeof(ImageSizes), (int)size)}";
 			});
 			try
 			{
-				byte[] imageData = await GetImageFromServer(prompt, negPrompt, cmd.User.Username, cfgRescale);
+				byte[] imageData = await GetImageFromServer(prompt, negPrompt, cmd.User.Username, size);
 				ButtonBuilder deleteButtonBuilder = new ButtonBuilder();
 				deleteButtonBuilder
 					.WithCustomId("button.ai-delete-image")
@@ -146,7 +148,7 @@ namespace NovelAIBot.Services
 				{
 					await cmd.ModifyOriginalResponseAsync(x =>
 					{
-						x.Content = $"Prompt job finished.\n**Prompt:** {escapeUnderscoreFormatting(prompt)}\n\n**Negative Prompt:** {escapeUnderscoreFormatting(negPrompt)}\n\n**Cfg-Rescale**: {cfgRescale}";
+						x.Content = $"Prompt job finished.\n**Prompt:** {escapeUnderscoreFormatting(prompt)}\n\n**Negative Prompt:** {escapeUnderscoreFormatting(negPrompt)}\n\n**Image Size**:  {Enum.GetName(typeof(ImageSizes), (int)size)}";
 						x.Components = components;
 						x.Attachments = new Optional<IEnumerable<FileAttachment>>(new FileAttachment[] { new FileAttachment(ms, $"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.png") });
 					});
@@ -170,14 +172,33 @@ namespace NovelAIBot.Services
 			}
 		}
 
-		private async Task<byte[]> GetImageFromServer(string prompt, string negative, string user, float cfgRescale = 0.7f)
+		private async Task<byte[]> GetImageFromServer(string prompt, string negative, string user, ImageSizes size)
 		{
 			ImageGenerationRequest request = new ImageGenerationRequest(prompt + ", " + "best quality, amazing quality, very aesthetic, absurdres");
 
 			if (negative != string.Empty)
 				request.Parameters.NegativePrompt += $", {negative}, lowres, {{bad}}, error, fewer, extra, missing, worst quality, jpeg artifacts, bad quality, watermark, unfinished, displeasing, chromatic aberration, signature, extra digits, artistic error, username, scan, [abstract] ";
 
-			request.Parameters.CfgRescale = cfgRescale;
+			switch (size)
+			{
+				case ImageSizes.Portrait:
+					request.Parameters.Width = 832;
+					request.Parameters.Height = 1216;
+					break;
+				case ImageSizes.Landscape:
+					request.Parameters.Width = 1216;
+					request.Parameters.Height = 832;
+					break;
+				case ImageSizes.Square:
+					request.Parameters.Width = 960;
+					request.Parameters.Height = 960;
+					break;
+				case ImageSizes.Mobile:
+					request.Parameters.Width = 704;
+					request.Parameters.Height = 1472;
+					break;
+
+			}
 
 			string json = JsonConvert.SerializeObject(request);
 			StringContent content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -314,5 +335,7 @@ namespace NovelAIBot.Services
 			private long GetRandomSeed()
 				=> new Random().NextInt64(0, long.MaxValue);
 		}
+
+		private enum ImageSizes { Portrait = 0, Landscape = 1, Square = 2, Mobile = 3 }
 	}
 }

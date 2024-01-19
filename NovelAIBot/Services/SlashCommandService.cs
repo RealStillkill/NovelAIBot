@@ -54,7 +54,6 @@ namespace NovelAIBot.Services
 			await _aiService.AddPromptToQueueAsync(cmd);
 		}
 
-
 		private SlashCommandProperties[] GetCommands()
 		{
 			List<SlashCommandBuilder> commands = new List<SlashCommandBuilder>();
@@ -75,12 +74,14 @@ namespace NovelAIBot.Services
 					.WithType(ApplicationCommandOptionType.String)
 					.WithRequired(false))
 				.AddOption(new SlashCommandOptionBuilder()
-					.WithName("cfg-rescale")
-					.WithDescription("Adjust the cfg-rescale parameter between values of 0.0 and 1.0 (default 0.7)")
-					.WithType(ApplicationCommandOptionType.Number)
-					.WithMinValue(0)
-					.WithMaxValue(1)
-					.WithRequired(false));
+					.WithName("image-size")
+					.WithDescription("Generate a different image size?")
+					.WithRequired(false)
+					.WithType(ApplicationCommandOptionType.Integer)
+					.AddChoice("portrait", 0)
+					.AddChoice("landscape", 1)
+					.AddChoice("square", 2)
+					.AddChoice("mobile-wallpaper", 3));
 			commands.Add(promptBuilder);
 			#endregion
 
