@@ -35,7 +35,7 @@ namespace NovelAIBot.Services
 			_logger = logger;
 
 			_httpClient = new HttpClient();
-			_httpClient.BaseAddress = new Uri("https://api.novelai.net");
+			_httpClient.BaseAddress = new Uri("https://image.novelai.net");
 
 			string token = _configuration["NovelAIToken"];
 			_httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
