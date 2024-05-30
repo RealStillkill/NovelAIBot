@@ -73,7 +73,7 @@ namespace NovelAIBot.Services
 			else
 			{
 				Queue.Enqueue(request);
-				await request.Context.Interaction.FollowupAsync($"Prompt job queued. {Queue.Count} prompts ahead. ~10 seconds per prompt\n{request.Prompt}");
+				await request.Context.Interaction.FollowupAsync($"Prompt job queued. {Queue.Count} prompts ahead.\n**Prompt:**{request.Prompt}");
 			}
 		}
 
@@ -82,13 +82,60 @@ namespace NovelAIBot.Services
 			this.IsBusy = true;
 			if (request is NaiRequest)
 				await StartContainedJob(request);
-			// if (request is BackendRequest)
-				// await StartBackendJob
+			if (request is BackendRequest)
+				await StartBackendJob(request);
 
 
 			this.IsBusy = false;
 			this.JobCompleted?.Invoke(this, request);
 		}
+
+		private async Task StartBackendJob(INaiRequest request)
+		{
+			try
+			{
+				using IServiceScope scope = _serviceProvider.CreateScope();
+				IGenerationService naiService = scope.ServiceProvider.GetRequiredKeyedService<IGenerationService>("Backend");
+
+				byte[] image = await naiService.GetImageBytesAsync(request);
+
+				FileAttachment attachment;
+				using (MemoryStream ms = new MemoryStream(image))
+				{
+					attachment = new FileAttachment(ms, "image.png");
+					EmbedBuilder embedBuilder = new EmbedBuilder()
+						.WithTitle("Text2Image Generation")
+						.WithAuthor(request.Context.User)
+						.WithCurrentTimestamp()
+						.WithImageUrl("attachment://image.png")
+						.WithFooter("nai-diffusion-v3")
+						.AddField("Prompt", request.Prompt);
+
+					if (!string.IsNullOrEmpty(request.NegativePrompt))
+						embedBuilder.AddField("Negative Prompt", request.NegativePrompt ?? "<No negative prompt>");
+
+					embedBuilder.AddField("Size", $"{request.Width}x{request.Height}");
+
+					await request.Context.Interaction.ModifyOriginalResponseAsync(x =>
+					{
+						x.Content = "";
+						x.Attachments = new List<FileAttachment> { attachment };
+						x.Embed = embedBuilder.Build();
+						x.Components = GetMessageButtons();
+					});
+				}
+				scope.Dispose();
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "An error occurred while generating an image");
+				await request.Context.Interaction.ModifyOriginalResponseAsync(x =>
+				{
+					x.Content = $"An error has occurred while processing your request:\n{ex.Message}";
+				});
+			}
+		}
+
 
 		private async Task StartContainedJob(INaiRequest request)
 		{

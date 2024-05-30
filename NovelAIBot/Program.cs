@@ -40,6 +40,7 @@ namespace NovelAIBot
 			}));
 			builder.Services.AddSingleton<QueueService>();
 			builder.Services.AddKeyedScoped<IGenerationService, NaiService>("Contained");
+			builder.Services.AddKeyedScoped<IGenerationService, BackendService>("Backend");
 
 
 			builder.Services.AddHostedService<DiscordService>();

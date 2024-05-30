@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Interactions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NovelAIBot.Enums;
 using NovelAIBot.Models;
@@ -15,13 +16,17 @@ namespace NovelAIBot.Modules
 {
 	internal class PromptModule : InteractionModuleBase<SocketInteractionContext>
 	{
+		private string AuthKey { get => _configuration.GetRequiredSection("GenerationApi")["ApiKey"]; }
+
 		private readonly ILogger<PromptModule> _logger;
 		private readonly QueueService _queueService;
+		private readonly IConfiguration _configuration;
 
-		public PromptModule(ILogger<PromptModule> logger, QueueService queueService)
+		public PromptModule(ILogger<PromptModule> logger, QueueService queueService, IConfiguration configuration)
 		{
 			_logger = logger;
 			_queueService = queueService;
+			_configuration = configuration;
 		}
 
 		[SlashCommand("prompt", "Generates an image based on a prompt")]
@@ -67,8 +72,17 @@ namespace NovelAIBot.Modules
 					height = 1216;
 					break;
 			}
-			NaiRequest request = new NaiRequest(prompt, negativePrompt, height, width, Context);
-			await _queueService.AddPromptToQueueAsync(request);
+
+			if (_configuration.GetRequiredSection("GenerationApi")["Mode"] == "Contained")
+			{
+				NaiRequest request = new NaiRequest(prompt, negativePrompt, height, width, Context);
+				await _queueService.AddPromptToQueueAsync(request);
+			}
+			else
+			{
+				BackendRequest request = new BackendRequest(prompt, negativePrompt, AuthKey, Context, height, width);
+				await _queueService.AddPromptToQueueAsync(request);
+			}
 		}
 
 		[ComponentInteraction("delete-image")]
