@@ -38,6 +38,10 @@ namespace NovelAIBot
 				LogLevel = LogSeverity.Debug,
 				UseCompiledLambda = true
 			}));
+			builder.Services.AddSingleton<QueueService>();
+			builder.Services.AddKeyedScoped<IGenerationService, NaiService>("Contained");
+
+
 			builder.Services.AddHostedService<DiscordService>();
 			var app = builder.Build();
 			await app.RunAsync();

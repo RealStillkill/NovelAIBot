@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NovelAIBot.Modules;
 
 namespace NovelAIBot.Services
 {
@@ -50,11 +51,11 @@ namespace NovelAIBot.Services
 				using (var scope = _serviceScopeFactory.CreateScope())
 				{
 
-					await _interactionService.AddModuleAsync<FaqModule>(scope.ServiceProvider);
+					await _interactionService.AddModuleAsync<PromptModule>(scope.ServiceProvider);
 					await _interactionService.RegisterCommandsGloballyAsync(true);
 				}
 
-				await _client.SetCustomStatusAsync("~Nya nya!");
+				await _client.SetCustomStatusAsync(_configuration.GetRequiredSection("Discord")["CustomStatus"]);
 			}
 			catch (Exception ex)
 			{

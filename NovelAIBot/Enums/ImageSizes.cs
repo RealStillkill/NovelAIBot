@@ -4,9 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace NovelAIBot.Services
+namespace NovelAIBot.Enums
 {
-	internal class GenerationApiService
-	{
-	}
+	internal enum ImageSizes { Portrait = 0, Landscape = 1, Square = 2, Mobile = 3 }
 }
