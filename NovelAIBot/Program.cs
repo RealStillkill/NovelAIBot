@@ -1,65 +1,55 @@
-﻿using Discord.WebSocket;
-using Discord;
-using Microsoft.Extensions.DependencyInjection;
-using NovelAIBot.Services;
+﻿using Discord;
 using Discord.Interactions;
+using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
-using Serilog;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using NovelAIBot.Services;
 
 namespace NovelAIBot
 {
-	internal partial class Program
+	internal class Program
 	{
-		static void Main(string[] args)
-			=> new Program().MainAsync(args).GetAwaiter().GetResult();
-
-		private async Task MainAsync(string[] args)
+		static async Task Main(string[] args)
 		{
-			Log.Logger = new LoggerConfiguration()
-				.WriteTo.Console()
-				.WriteTo.File(Path.Combine(Directories.AppData, "log.txt"))
-				.CreateLogger();
+			HostApplicationBuilder builder = new HostApplicationBuilder();
 
+			if (IsDebugMode())
+			{
+				builder.Configuration.AddJsonFile("appsettings.development.json", false, true);
+			}
+			else builder.Configuration.AddJsonFile("appsettings.json", false, true);
+
+			string constring = builder.Configuration.GetConnectionString("DefaultConnection");
+			builder.Logging.AddConsole();
 
 			var client = new DiscordSocketClient(new DiscordSocketConfig
 			{
 				ConnectionTimeout = 8000,
 				HandlerTimeout = 3000,
 				MessageCacheSize = 25,
-				LogLevel = LogSeverity.Verbose,
+				LogLevel = LogSeverity.Debug,
 				GatewayIntents = GatewayIntents.All
 			});
-
-			IServiceProvider serviceProvider = new ServiceCollection()
-				.AddSingleton(client)
-				.AddSingleton<DiscordCoordinationService>()
-				.AddSingleton<NovelAIService>()
-				.AddSingleton<ILogger>(Log.Logger)
-				.AddScoped<SlashCommandService>()
-				.AddScoped<DiscordInteractionService>()
-				.AddScoped<IConfiguration>(_ => GetConfiguration())
-				.BuildServiceProvider();
-
-			var coordination = serviceProvider.GetRequiredService<DiscordCoordinationService>();
-			await Task.Delay(-1);
+			builder.Services.AddSingleton(client);
+			builder.Services.AddSingleton(new InteractionService(client, new InteractionServiceConfig
+			{
+				LogLevel = LogSeverity.Debug,
+				UseCompiledLambda = true
+			}));
+			builder.Services.AddHostedService<DiscordService>();
+			var app = builder.Build();
+			await app.RunAsync();
 		}
 
-		private IConfiguration GetConfiguration()
+		public static bool IsDebugMode()
 		{
-			string cfgPath = Directories.Config;
 #if DEBUG
-			cfgPath = Directories.Config.Replace(".json", ".development.json");
+			return true;
+#else
+			return false;
 #endif
-			if (!Directory.Exists(Directories.AppData))
-				Directory.CreateDirectory(Directories.AppData);
-
-			if (!File.Exists(cfgPath))
-			{
-				ConfigModel config = new ConfigModel();
-				File.WriteAllText(cfgPath, config.ToJson());
-			}
-
-			return new ConfigurationBuilder().AddJsonFile(cfgPath).Build();
 		}
 	}
 }
