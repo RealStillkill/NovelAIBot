@@ -34,8 +34,11 @@ namespace NovelAIBot.Services
 
 		public async Task<byte[]> GetImageBytesAsync(INaiRequest request)
 		{
-			ImageGenerationRequest imageRequest = new ImageGenerationRequest(request.Prompt);
-
+			var configSection = _configuration.GetSection("GenerationApi");
+			string defaultPositive = configSection["DefaultPositive"] ?? string.Empty;
+			string defaultNegative = configSection["DefaultNegative"] ?? string.Empty;
+			
+			ImageGenerationRequest imageRequest = new ImageGenerationRequest(request.Prompt + defaultPositive, request.NegativePrompt + defaultNegative);
 			imageRequest.Parameters.Height = request.Height;
 			imageRequest.Parameters.Width = request.Width;
 

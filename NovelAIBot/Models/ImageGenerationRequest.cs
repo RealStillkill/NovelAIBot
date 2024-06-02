@@ -23,9 +23,9 @@ namespace NovelAIBot.JsonModels
 
 		[JsonProperty("url")]
 		public string Url { get; set; }
-		public ImageGenerationRequest(string input)
+		public ImageGenerationRequest(string prompt, string negativePrompt)
 		{
-			Input = input;
+			Input = prompt;
 			Model = "nai-diffusion-3";
 			Action = "generate";
 			Parameters = new Parameters();

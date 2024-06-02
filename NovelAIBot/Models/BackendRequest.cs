@@ -38,5 +38,20 @@ namespace NovelAIBot.Models
 			Height = height;
 			Width = width;
 		}
+
+		public void AppendToPrompt(string input)
+		{
+			if (!string.IsNullOrEmpty(input))
+				Prompt += ", " + input;
+		}
+		public void AppendToNegativePrompt(string input)
+		{
+			if (!string.IsNullOrEmpty(input))
+			{
+				if (string.IsNullOrEmpty(NegativePrompt))
+					NegativePrompt = input;
+				else NegativePrompt += ", " + input;
+			}	
+		}
 	}
 }

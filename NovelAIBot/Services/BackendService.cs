@@ -37,9 +37,18 @@ namespace NovelAIBot.Services
 
 		public async Task<byte[]> GetImageBytesAsync(INaiRequest request)
 		{
+			var configSection = _configuration.GetSection("GenerationApi");
+			string defaultPositive = configSection["DefaultPositive"] ?? string.Empty;
+			string defaultNegative = configSection["DefaultNegative"] ?? string.Empty;
+
+			BackendRequest bRequest = (BackendRequest)request;
+			bRequest.AppendToPrompt(defaultPositive);
+			bRequest.AppendToNegativePrompt(defaultNegative);
+
+
 			using ClientWebSocket client = new ClientWebSocket();
 			await client.ConnectAsync(new Uri(WebSocketBaseAddress), CancellationToken.None);
-			string json = JsonSerializer.Serialize(request as BackendRequest);
+			string json = JsonSerializer.Serialize(bRequest);
 
 			await client.SendTextMessageAsync(json, Encoding.UTF8);
 			json = await client.ReceiveTextMessageAsync(1024 * 20, Encoding.UTF8);

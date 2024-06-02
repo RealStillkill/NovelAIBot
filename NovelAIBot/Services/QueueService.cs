@@ -99,31 +99,7 @@ namespace NovelAIBot.Services
 
 				byte[] image = await naiService.GetImageBytesAsync(request);
 
-				FileAttachment attachment;
-				using (MemoryStream ms = new MemoryStream(image))
-				{
-					attachment = new FileAttachment(ms, "image.png");
-					EmbedBuilder embedBuilder = new EmbedBuilder()
-						.WithTitle("Text2Image Generation")
-						.WithAuthor(request.Context.User)
-						.WithCurrentTimestamp()
-						.WithImageUrl("attachment://image.png")
-						.WithFooter("nai-diffusion-v3")
-						.AddField("Prompt", request.Prompt);
-
-					if (!string.IsNullOrEmpty(request.NegativePrompt))
-						embedBuilder.AddField("Negative Prompt", request.NegativePrompt ?? "<No negative prompt>");
-
-					embedBuilder.AddField("Size", $"{request.Width}x{request.Height}");
-
-					await request.Context.Interaction.ModifyOriginalResponseAsync(x =>
-					{
-						x.Content = "";
-						x.Attachments = new List<FileAttachment> { attachment };
-						x.Embed = embedBuilder.Build();
-						x.Components = GetMessageButtons();
-					});
-				}
+				await SendToDiscord(request, image);
 				scope.Dispose();
 			}
 			catch (Exception ex)
@@ -145,32 +121,7 @@ namespace NovelAIBot.Services
 				IGenerationService naiService = scope.ServiceProvider.GetRequiredKeyedService<IGenerationService>("Contained");
 
 				byte[] image = await naiService.GetImageBytesAsync(request);
-
-				FileAttachment attachment;
-				using (MemoryStream ms = new MemoryStream(image))
-				{
-					attachment = new FileAttachment(ms, "image.png");
-					EmbedBuilder embedBuilder = new EmbedBuilder()
-						.WithTitle("Text2Image Generation")
-						.WithAuthor(request.Context.User)
-						.WithCurrentTimestamp()
-						.WithImageUrl("attachment://image.png")
-						.AddField("Prompt", request.Prompt);
-
-					if (!string.IsNullOrEmpty(request.NegativePrompt))
-						embedBuilder.AddField("Negative Prompt", request.NegativePrompt ?? "<No negative prompt>");
-
-					embedBuilder.AddField("Size", $"{request.Width}x{request.Height}");
-
-					await request.Context.Interaction.ModifyOriginalResponseAsync(x =>
-					{
-						x.Content = "";
-						x.Attachments = new List<FileAttachment> { attachment };
-						x.Embed = embedBuilder.Build();
-						x.Components = GetMessageButtons();
-					});
-				}
-				scope.Dispose();
+				await SendToDiscord(request, image);
 			}
 			catch (Exception ex)
 			{
@@ -182,11 +133,74 @@ namespace NovelAIBot.Services
 			}
 		}
 
+		private async Task SendToDiscord(INaiRequest request, byte[] image)
+		{
+			DefaultPrompts defaults = GetDefaultPrompts();
+			FileAttachment attachment;
+			using (MemoryStream ms = new MemoryStream(image))
+			{
+				attachment = new FileAttachment(ms, "image.png");
+				EmbedBuilder embedBuilder = new EmbedBuilder()
+					.WithTitle("Text2Image Generation")
+					.WithAuthor(request.Context.User)
+					.WithCurrentTimestamp()
+					.WithImageUrl("attachment://image.png")
+					.AddField("Prompt", request.Prompt.Replace(", " + defaults.Positive, string.Empty));
+
+
+				string adjustedNegativePrompt = request.NegativePrompt.Replace(", " + defaults.Negative, string.Empty);
+
+
+				if (!string.IsNullOrEmpty(adjustedNegativePrompt))
+					embedBuilder.AddField("Negative Prompt", adjustedNegativePrompt ?? "<No negative prompt>");
+
+
+
+				if (!string.IsNullOrEmpty(defaults.Positive))
+					embedBuilder.AddField("Default Tags", defaults.Positive);
+				if (!string.IsNullOrEmpty(defaults.Negative))
+					embedBuilder.AddField("Default Negative Tags", defaults.Negative);
+
+				embedBuilder.AddField("Size", $"{request.Width}x{request.Height}");
+
+				await request.Context.Interaction.ModifyOriginalResponseAsync(x =>
+				{
+					x.Content = "";
+					x.Attachments = new List<FileAttachment> { attachment };
+					x.Embed = embedBuilder.Build();
+					x.Components = GetMessageButtons();
+				});
+			}
+		}
+
 		private MessageComponent GetMessageButtons()
 		{
 			ComponentBuilder builder = new ComponentBuilder()
 				.WithButton("Delete TOS Image", "delete-image", ButtonStyle.Danger);
 			return builder.Build();
+		}
+
+		
+
+		private DefaultPrompts GetDefaultPrompts()
+		{
+			var configSection = _configuration.GetSection("GenerationApi");
+			string defaultPositive = configSection["DefaultPositive"] ?? string.Empty;
+			string defaultNegative = configSection["DefaultNegative"] ?? string.Empty;
+
+			return new DefaultPrompts(defaultPositive, defaultNegative);
+		}
+
+		internal struct DefaultPrompts
+		{
+			public string Positive { get; private set; }
+			public string Negative { get; private set; }
+
+			public DefaultPrompts(string positive, string negative)
+			{
+				Positive = positive;
+				Negative = negative;
+			}
 		}
 	}
 }
