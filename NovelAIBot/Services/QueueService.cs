@@ -148,12 +148,11 @@ namespace NovelAIBot.Services
 					.AddField("Prompt", request.Prompt.Replace(", " + defaults.Positive, string.Empty));
 
 
-				string adjustedNegativePrompt = request.NegativePrompt.Replace(", " + defaults.Negative, string.Empty);
-
-
-				if (!string.IsNullOrEmpty(adjustedNegativePrompt))
-					embedBuilder.AddField("Negative Prompt", adjustedNegativePrompt ?? "<No negative prompt>");
-
+				string cleanNegative = request.NegativePrompt.Replace(defaults.Negative, string.Empty).Trim();
+				if (cleanNegative.EndsWith(","))
+					cleanNegative = cleanNegative.Remove(cleanNegative.Length - 1);
+				if (!string.IsNullOrEmpty(cleanNegative))
+					embedBuilder.AddField("Negative Prompt", cleanNegative);
 
 
 				if (!string.IsNullOrEmpty(defaults.Positive))
