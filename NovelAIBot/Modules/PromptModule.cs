@@ -5,12 +5,6 @@ using Microsoft.Extensions.Logging;
 using NovelAIBot.Enums;
 using NovelAIBot.Models;
 using NovelAIBot.Services;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace NovelAIBot.Modules
 {
@@ -46,7 +40,7 @@ namespace NovelAIBot.Modules
 			}
 #endif
 
-
+			_logger.LogInformation($"{Context.User.Username} used prompt. Prompt: {prompt}, Negative: {negativePrompt}, Size: {Enum.GetName(imageSize)}.");
 			int width;
 			int height;
 			switch (imageSize)
