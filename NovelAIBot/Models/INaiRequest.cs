@@ -11,5 +11,6 @@ namespace NovelAIBot.Models
 		string NegativePrompt { get; }
 		string Prompt { get; }
 		int Width { get; }
+		int Seed { get; }
 	}
 }

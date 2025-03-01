@@ -25,11 +25,11 @@ namespace NovelAIBot.Modules
 
 		[SlashCommand("prompt", "Generates an image based on a prompt")]
 		public async Task Prompt(
-			[Summary(description:"The prompt to base the image off of.")][MaxLength(500)]string prompt,
-			[Summary(description:"The aspect ratio of the image.")]ImageSizes imageSize = ImageSizes.Portrait,
-			[Summary(description: "Tags to exclude from the prompt.")][MaxLength(500)]string negativePrompt = null)
+			[Summary(description: "The prompt to base the image off of.")][MaxLength(500)]string prompt,
+			[Summary(description: "The aspect ratio of the image.")]ImageSizes imageSize = ImageSizes.Portrait,
+			[Summary(description: "Tags to exclude from the prompt.")][MaxLength(500)]string negativePrompt = null,
+			[Summary(description: "Set the seed for this generation. -1 (default) for random")] int seed = -1)
 		{
-			await DeferAsync();
 
 #if DEBUG
 			if (Context.User.Id != 253313886466473997)
@@ -39,7 +39,7 @@ namespace NovelAIBot.Modules
 				return;
 			}
 #endif
-
+			await DeferAsync();
 			_logger.LogInformation($"{Context.User.Username} used prompt. Prompt: {prompt}, Negative: {negativePrompt}, Size: {Enum.GetName(imageSize)}.");
 			int width;
 			int height;
@@ -69,12 +69,12 @@ namespace NovelAIBot.Modules
 
 			if (_configuration.GetRequiredSection("GenerationApi")["Mode"] == "Contained")
 			{
-				NaiRequest request = new NaiRequest(prompt, negativePrompt, height, width, Context);
+				NaiRequest request = new NaiRequest(prompt, negativePrompt, height, width, Context, seed);
 				await _queueService.AddPromptToQueueAsync(request);
 			}
 			else
 			{
-				BackendRequest request = new BackendRequest(prompt, negativePrompt, AuthKey, Context, height, width);
+				BackendRequest request = new BackendRequest(prompt, negativePrompt, AuthKey, Context, height, width, seed);
 				await _queueService.AddPromptToQueueAsync(request);
 			}
 		}

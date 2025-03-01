@@ -137,39 +137,24 @@ namespace NovelAIBot.Services
 		{
 			DefaultPrompts defaults = GetDefaultPrompts();
 			FileAttachment attachment;
-			using (MemoryStream ms = new MemoryStream(image))
+			using MemoryStream ms = new MemoryStream(image);
+			attachment = new FileAttachment(ms, "image.png");
+			EmbedBuilder embedBuilder = new EmbedBuilder()
+				.WithTitle("Text2Image Generation")
+				.WithAuthor(request.Context.User)
+				.WithCurrentTimestamp()
+				.WithImageUrl("attachment://image.png")
+				.AddField("Prompt", request.Prompt);
+
+			embedBuilder.AddField("Size", $"{request.Width}x{request.Height}");
+
+			await request.Context.Interaction.ModifyOriginalResponseAsync(x =>
 			{
-				attachment = new FileAttachment(ms, "image.png");
-				EmbedBuilder embedBuilder = new EmbedBuilder()
-					.WithTitle("Text2Image Generation")
-					.WithAuthor(request.Context.User)
-					.WithCurrentTimestamp()
-					.WithImageUrl("attachment://image.png")
-					.AddField("Prompt", request.Prompt.Replace(", " + defaults.Positive, string.Empty));
-
-
-				string cleanNegative = request.NegativePrompt.Replace(defaults.Negative, string.Empty).Trim();
-				if (cleanNegative.EndsWith(","))
-					cleanNegative = cleanNegative.Remove(cleanNegative.Length - 1);
-				if (!string.IsNullOrEmpty(cleanNegative))
-					embedBuilder.AddField("Negative Prompt", cleanNegative);
-
-
-				if (!string.IsNullOrEmpty(defaults.Positive))
-					embedBuilder.AddField("Default Tags", defaults.Positive);
-				if (!string.IsNullOrEmpty(defaults.Negative))
-					embedBuilder.AddField("Default Negative Tags", defaults.Negative);
-
-				embedBuilder.AddField("Size", $"{request.Width}x{request.Height}");
-
-				await request.Context.Interaction.ModifyOriginalResponseAsync(x =>
-				{
-					x.Content = "";
-					x.Attachments = new List<FileAttachment> { attachment };
-					x.Embed = embedBuilder.Build();
-					x.Components = GetMessageButtons();
-				});
-			}
+				x.Content = "";
+				x.Attachments = new List<FileAttachment> { attachment };
+				x.Embed = embedBuilder.Build();
+				x.Components = GetMessageButtons();
+			});
 		}
 
 		private MessageComponent GetMessageButtons()
@@ -178,8 +163,6 @@ namespace NovelAIBot.Services
 				.WithButton("Delete TOS Image", "delete-image", ButtonStyle.Danger);
 			return builder.Build();
 		}
-
-		
 
 		private DefaultPrompts GetDefaultPrompts()
 		{
