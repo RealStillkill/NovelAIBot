@@ -46,6 +46,8 @@ namespace NovelAIBot.Services
 			string json = JsonConvert.SerializeObject(imageRequest);
 			StringContent content = new StringContent(json, Encoding.UTF8, "application/json");
 			var response = await _httpClient.PostAsync("/ai/generate-image", content);
+			if (!response.IsSuccessStatusCode)
+				_logger.LogError($"Failed to get image from NAI: {await response.Content.ReadAsStringAsync()}");
 			response.EnsureSuccessStatusCode();
 			byte[] zip = await response.Content.ReadAsByteArrayAsync();
 			byte[] image = GetImageFromZip(zip);
