@@ -18,7 +18,8 @@ namespace NovelAIBot.Models
 
 		public int Width { get; set; }
 
-		public BackendRequest(string prompt, string negativePrompt, string authKey, int height, int width)
+		public int Seed { get; set; }
+		public BackendRequest(string prompt, string negativePrompt, string authKey, int height, int width, int seed)
 		{
 			Id = Guid.Empty;
 			Prompt = prompt;
@@ -26,9 +27,11 @@ namespace NovelAIBot.Models
 			AuthKey = authKey;
 			Height = height;
 			Width = width;
+			Seed = seed;
 		}
 
-		public BackendRequest(string prompt, string negativePrompt, string authKey, SocketInteractionContext context, int height, int width)
+		public BackendRequest(string prompt, string negativePrompt, string authKey, SocketInteractionContext context,
+			int height, int width, int seed)
 		{
 			Id = Guid.Empty;
 			Prompt = prompt;

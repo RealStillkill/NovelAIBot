@@ -42,8 +42,8 @@ namespace NovelAIBot.Services
 			string defaultNegative = configSection["DefaultNegative"] ?? string.Empty;
 
 			BackendRequest bRequest = (BackendRequest)request;
-			bRequest.AppendToPrompt(defaultPositive);
-			bRequest.AppendToNegativePrompt(defaultNegative);
+			//bRequest.AppendToPrompt(defaultPositive);
+			//bRequest.AppendToNegativePrompt(defaultNegative);
 
 
 			using ClientWebSocket client = new ClientWebSocket();

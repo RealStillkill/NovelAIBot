@@ -14,14 +14,16 @@ namespace NovelAIBot.Models
 		public int Height { get; private set; }
 		public int Width { get; private set; }
 		public SocketInteractionContext Context { get; private set; }
+		public int Seed { get; private set; }
 
-		public NaiRequest(string prompt, string negativePrompt, int height, int width, SocketInteractionContext context)
+		public NaiRequest(string prompt, string negativePrompt, int height, int width, SocketInteractionContext context, int seed)
 		{
 			Prompt = prompt;
 			NegativePrompt = negativePrompt;
 			Height = height;
 			Width = width;
 			Context = context;
+			Seed = seed;
 		}
 	}
 }
