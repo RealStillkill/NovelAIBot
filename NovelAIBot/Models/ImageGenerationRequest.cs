@@ -26,7 +26,7 @@ namespace NovelAIBot.JsonModels
 		public ImageGenerationRequest(string prompt, string negativePrompt)
 		{
 			Input = prompt;
-			Model = "nai-diffusion-3";
+			Model = "nai-diffusion-4";
 			Action = "generate";
 			Parameters = new Parameters();
 			Url = @"https://i8k38ax_hklkp.tenant-novelai.knative.chi.coreweave.com/SXb9P'&\\U(qsOAZb2]jIa5P Kn.sB 6>y$ig&E){y-#Cp/l4J/8FEhQIXEYw.{";
