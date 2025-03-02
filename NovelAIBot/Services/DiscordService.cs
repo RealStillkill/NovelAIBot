@@ -36,6 +36,7 @@ namespace NovelAIBot.Services
 			_serviceScopeFactory = scopeFactory;
 			_appLifetime = appLifetime;
 			_interactionService = interactionService;
+			_client.JoinedGuild += _client_JoinedGuild;
 
 			_client.Ready += _client_Ready;
 			_client.Log += Log;
@@ -43,8 +44,26 @@ namespace NovelAIBot.Services
 			_client.InteractionCreated += _client_InteractionCreated;
 		}
 
+		private async Task _client_JoinedGuild(SocketGuild guild)
+		{
+			if (await CheckShouldLeaveServerAsync(guild.Id))
+			{
+				_logger.LogWarning($"Leaving guild {guild.Name} ({guild.Id})");
+				await guild.LeaveAsync();
+			}
+		}
+
 		private async Task _client_Ready()
 		{
+			foreach (SocketGuild guild in _client.Guilds)
+			{
+				if (await CheckShouldLeaveServerAsync(guild.Id))
+				{
+					_logger.LogWarning($"Leaving guild {guild.Name} ({guild.Id})");
+					await guild.LeaveAsync();
+				}
+			}
+
 			_logger.LogInformation("Client ready!");
 			try
 			{
@@ -181,5 +200,15 @@ namespace NovelAIBot.Services
 
 		public Task StoppingAsync(CancellationToken cancellationToken)
 			=> Task.CompletedTask;
+
+		private async Task<bool> CheckShouldLeaveServerAsync(ulong id)
+		{
+			ulong[] allowedGuilds = _configuration.GetSection("AllowedDiscordServerIds").Get<ulong[]>() ??
+				new ulong[0];
+			if (allowedGuilds.Length == 0)
+				return false;
+
+			return !allowedGuilds.Contains(id);
+		}
 	}
 }
